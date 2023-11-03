@@ -1,0 +1,10 @@
+#+TITLE: Promethee
+
+* Usage
+
+Clone the repository and run:
+
+#+BEGIN_SRC shell
+docker build -t promethee .
+docker run -p 1234:1234 -v ./:/notebooks promethee
+#+END_SRC
