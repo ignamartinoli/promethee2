@@ -21,14 +21,14 @@ begin
 end
 
 # ╔═╡ 5a57206b-5362-4891-95f4-b7e17edc91b8
-function multiple_inputs(quantity, text)
+function criteria_input(quantity, text)
 	return combine() do Child
 		inputs = [
 			md""" $text $order: $(
 				Child(order, TextField())
 			)"""
 
-			for order in [string(i) for i in 1:quantity]
+			for order in string.(1:quantity)
 		]
 
 		md"""$(inputs)"""
@@ -46,11 +46,31 @@ md"## Criteria"
 # ╔═╡ dba59597-1d75-4ada-8fc3-774fc1de1303
 md"
 Quantity of criteria:
-$(@bind criterion confirm(NumberField(1:10)))
+$(@bind criteria_count confirm(NumberField(1:10)))
 "
 
 # ╔═╡ f8e30065-cf82-402f-9d90-dd4e954312b2
-@bind criteria multiple_inputs(criterion, "Name of the criterion")
+@bind criteria confirm(criteria_input(criteria_count, "Name of the criterion"))
+
+# ╔═╡ a2c51850-fc8a-49b2-8907-0327759724ec
+function values_input(quantity)
+	return combine() do Child
+		inputs = [
+			let
+				name = "$criterion-$order"
+				md""" $criterion $order: $(
+					Child(name, NumberField(0:1000))
+				)"""
+			end
+
+			for criterion in criteria
+			for order in string.(1:quantity)
+
+		]
+
+		md"""$(inputs)"""
+	end
+end
 
 # ╔═╡ 155d39b1-51b1-40d7-bb4a-8145e64b57f8
 md"## Alternatives"
@@ -58,11 +78,14 @@ md"## Alternatives"
 # ╔═╡ aa77cde1-c70c-46bc-9db8-70ef1f9049f2
 md"
 Quantity of alternatives:
-$(@bind alternative confirm(NumberField(1:10)))
+$(@bind count_alternatives confirm(NumberField(0:10)))
 "
 
 # ╔═╡ 069ad953-2166-4eaf-85b7-b5cdf30127b7
-@bind alternatives multiple_inputs(alternative, "Alternative")
+@bind alternatives confirm(values_input(count_alternatives))
+
+# ╔═╡ a4ff8c4c-2cc8-484d-b0b5-db5cd516da12
+alternatives
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -338,6 +361,7 @@ version = "17.4.0+0"
 # ╔═╡ Cell order:
 # ╟─2f883160-7934-11ee-0dd3-d983d541dae0
 # ╟─5a57206b-5362-4891-95f4-b7e17edc91b8
+# ╟─a2c51850-fc8a-49b2-8907-0327759724ec
 # ╟─d827f5b0-0f1b-4e70-a78d-a3c2f0dc6d78
 # ╟─6b7a4adb-9a23-46a9-b29f-b32afae0a047
 # ╟─dba59597-1d75-4ada-8fc3-774fc1de1303
@@ -345,5 +369,6 @@ version = "17.4.0+0"
 # ╟─155d39b1-51b1-40d7-bb4a-8145e64b57f8
 # ╟─aa77cde1-c70c-46bc-9db8-70ef1f9049f2
 # ╠═069ad953-2166-4eaf-85b7-b5cdf30127b7
+# ╟─a4ff8c4c-2cc8-484d-b0b5-db5cd516da12
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
