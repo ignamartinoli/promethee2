@@ -53,19 +53,36 @@ $(@bind criteria_count confirm(NumberField(1:10)))
 @bind criteria confirm(criteria_input(criteria_count, "Name of the criterion"))
 
 # ╔═╡ a2c51850-fc8a-49b2-8907-0327759724ec
-function values_input(quantity)
+function alternatives_input(quantity)
 	return combine() do Child
 		inputs = [
 			let
 				name = "$criterion-$order"
 				md""" $criterion $order: $(
-					Child(name, NumberField(0:1000))
+					Child(name, NumberField(0.0:1000.0))
 				)"""
 			end
 
 			for criterion in criteria
 			for order in string.(1:quantity)
+		]
 
+		md"""$(inputs)"""
+	end
+end
+
+# ╔═╡ 1fef8729-943f-4e62-9bf7-db327c438e39
+function weights_input(quantity)
+	return combine() do Child
+		inputs = [
+			let
+				name = "$criterion-weight"
+				md""" $criterion weight: $(
+					Child(name, NumberField(0.0:1.0))
+				)"""
+			end
+
+			for criterion in criteria
 		]
 
 		md"""$(inputs)"""
@@ -78,14 +95,31 @@ md"## Alternatives"
 # ╔═╡ aa77cde1-c70c-46bc-9db8-70ef1f9049f2
 md"
 Quantity of alternatives:
-$(@bind count_alternatives confirm(NumberField(0:10)))
+$(@bind alternatives_count confirm(NumberField(1:10)))
 "
 
 # ╔═╡ 069ad953-2166-4eaf-85b7-b5cdf30127b7
-@bind alternatives confirm(values_input(count_alternatives))
+@bind alternatives_tuple confirm(alternatives_input(alternatives_count))
 
 # ╔═╡ a4ff8c4c-2cc8-484d-b0b5-db5cd516da12
-alternatives
+alternatives_tuple
+
+# ╔═╡ 0e29d307-3bb2-45c8-8253-1ea66335dd28
+begin	
+	tuple_data = Tuple(alternatives_tuple)
+	
+	elements_per_division = length(tuple_data) ÷ criteria_count
+		
+	alternatives = [tuple_data[i:i+elements_per_division-1] for i in 1:elements_per_division:length(tuple_data)]
+	
+	alternatives
+end
+
+# ╔═╡ 1217b527-3870-46c3-a602-3d48c1ee97ce
+@bind weights_tuple confirm(weights_input(alternatives_count))
+
+# ╔═╡ 72dc4227-e7c0-48a0-808a-9cac1a79e227
+collect(weights_tuple)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -361,7 +395,8 @@ version = "17.4.0+0"
 # ╔═╡ Cell order:
 # ╟─2f883160-7934-11ee-0dd3-d983d541dae0
 # ╟─5a57206b-5362-4891-95f4-b7e17edc91b8
-# ╟─a2c51850-fc8a-49b2-8907-0327759724ec
+# ╠═a2c51850-fc8a-49b2-8907-0327759724ec
+# ╠═1fef8729-943f-4e62-9bf7-db327c438e39
 # ╟─d827f5b0-0f1b-4e70-a78d-a3c2f0dc6d78
 # ╟─6b7a4adb-9a23-46a9-b29f-b32afae0a047
 # ╟─dba59597-1d75-4ada-8fc3-774fc1de1303
@@ -369,6 +404,9 @@ version = "17.4.0+0"
 # ╟─155d39b1-51b1-40d7-bb4a-8145e64b57f8
 # ╟─aa77cde1-c70c-46bc-9db8-70ef1f9049f2
 # ╠═069ad953-2166-4eaf-85b7-b5cdf30127b7
-# ╟─a4ff8c4c-2cc8-484d-b0b5-db5cd516da12
+# ╠═a4ff8c4c-2cc8-484d-b0b5-db5cd516da12
+# ╠═0e29d307-3bb2-45c8-8253-1ea66335dd28
+# ╠═1217b527-3870-46c3-a602-3d48c1ee97ce
+# ╠═72dc4227-e7c0-48a0-808a-9cac1a79e227
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
