@@ -16,16 +16,20 @@ end
 
 # ╔═╡ 2f883160-7934-11ee-0dd3-d983d541dae0
 begin
-	using PlutoUI
+	using PlutoUI, Random
 	import PlutoUI: combine
 end
 
 # ╔═╡ 5a57206b-5362-4891-95f4-b7e17edc91b8
-function criteria_input(quantity, text)
+function criteria_input(quantity)
 	return combine() do Child
 		inputs = [
-			md""" $text $order: $(
-				Child(order, TextField())
+			md""" Name of the criterion $order: $(
+				Child(randstring(), TextField())
+			) $(
+				Child(randstring(), Select(
+					["Criterion", "Lineal", "Level", "Only P", "Only Q"]
+				))
 			)"""
 
 			for order in string.(1:quantity)
@@ -50,18 +54,24 @@ $(@bind criteria_count confirm(NumberField(1:10)))
 "
 
 # ╔═╡ f8e30065-cf82-402f-9d90-dd4e954312b2
-@bind criteria confirm(criteria_input(criteria_count, "Name of the criterion"))
+@bind criteria_tuple confirm(criteria_input(criteria_count))
+
+# ╔═╡ a75c01e1-a4a1-4d58-a18f-0b8e24e9aa4e
+begin
+	odd_indices = [i for (i, _) in enumerate(keys(criteria_tuple)) if isodd(i)]
+	even_indices = [i for (i, _) in enumerate(keys(criteria_tuple)) if iseven(i)]
+
+	criteria = [criteria_tuple[symbol] for symbol in odd_indices]
+	funcs = [criteria_tuple[symbol] for symbol in even_indices]
+end
 
 # ╔═╡ a2c51850-fc8a-49b2-8907-0327759724ec
 function alternatives_input(quantity)
 	return combine() do Child
 		inputs = [
-			let
-				name = "$criterion-$order"
-				md""" $criterion $order: $(
-					Child(name, NumberField(0.0:1000.0))
-				)"""
-			end
+			md""" $criterion $order: $(
+				Child(randstring(), NumberField(0.0:1000.0))
+			)"""
 
 			for criterion in criteria
 			for order in string.(1:quantity)
@@ -75,12 +85,9 @@ end
 function weights_input(quantity)
 	return combine() do Child
 		inputs = [
-			let
-				name = "$criterion-weight"
-				md""" $criterion weight: $(
-					Child(name, NumberField(0.0:1.0))
-				)"""
-			end
+			md""" $criterion weight: $(
+				Child(randstring(), NumberField(0.0:1.0))
+			)"""
 
 			for criterion in criteria
 		]
@@ -101,9 +108,6 @@ $(@bind alternatives_count confirm(NumberField(1:10)))
 # ╔═╡ 069ad953-2166-4eaf-85b7-b5cdf30127b7
 @bind alternatives_tuple confirm(alternatives_input(alternatives_count))
 
-# ╔═╡ a4ff8c4c-2cc8-484d-b0b5-db5cd516da12
-alternatives_tuple
-
 # ╔═╡ 0e29d307-3bb2-45c8-8253-1ea66335dd28
 begin	
 	tuple_data = Tuple(alternatives_tuple)
@@ -121,10 +125,48 @@ end
 # ╔═╡ 72dc4227-e7c0-48a0-808a-9cac1a79e227
 collect(weights_tuple)
 
+# ╔═╡ c511d09f-72a2-4d9c-bc41-782c1f1080d1
+@bind skidaddle Button("Skidaddle!")
+
+# ╔═╡ d121aa9c-a48a-420c-8bd5-82d63b01cf26
+md"
+``` python
+    for i in range(len(alternatives)):
+        normalized.append(normalize(alternatives[i], preferences[i], indifferences[i], functions[i]))
+    show(normalized[0])
+    print()
+
+    for i in range(len(normalized)):
+        ponderated.append(ponderate(normalized[i], weights[i]))
+    show(normalized[0])
+    print()
+
+    combination = combine(ponderated)
+    show(combination)
+    print()
+
+    positive_flow, negative_flow = flows(combination)
+    print(positive_flow, negative_flow)
+
+    results = [p - n for p, n in zip(positive_flow, negative_flow)]
+    print(results)
+```
+"
+
+# ╔═╡ 5d375598-7587-4765-b4f8-f9619824ef0e
+begin
+	skidaddle
+
+	for i in 1:alternatives_count
+		println(i)
+	end
+end
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
 PlutoUI = "~0.7.52"
@@ -136,7 +178,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.3"
 manifest_format = "2.0"
-project_hash = "f5c06f335ceddc089c816627725c7f55bb23b077"
+project_hash = "5a7d1bb53f16d94153e31a8f805cba0b4a868aa8"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -393,20 +435,23 @@ version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─2f883160-7934-11ee-0dd3-d983d541dae0
+# ╠═2f883160-7934-11ee-0dd3-d983d541dae0
 # ╟─5a57206b-5362-4891-95f4-b7e17edc91b8
-# ╠═a2c51850-fc8a-49b2-8907-0327759724ec
-# ╠═1fef8729-943f-4e62-9bf7-db327c438e39
+# ╟─a2c51850-fc8a-49b2-8907-0327759724ec
+# ╟─1fef8729-943f-4e62-9bf7-db327c438e39
 # ╟─d827f5b0-0f1b-4e70-a78d-a3c2f0dc6d78
 # ╟─6b7a4adb-9a23-46a9-b29f-b32afae0a047
 # ╟─dba59597-1d75-4ada-8fc3-774fc1de1303
-# ╟─f8e30065-cf82-402f-9d90-dd4e954312b2
+# ╠═f8e30065-cf82-402f-9d90-dd4e954312b2
+# ╟─a75c01e1-a4a1-4d58-a18f-0b8e24e9aa4e
 # ╟─155d39b1-51b1-40d7-bb4a-8145e64b57f8
 # ╟─aa77cde1-c70c-46bc-9db8-70ef1f9049f2
-# ╠═069ad953-2166-4eaf-85b7-b5cdf30127b7
-# ╠═a4ff8c4c-2cc8-484d-b0b5-db5cd516da12
-# ╠═0e29d307-3bb2-45c8-8253-1ea66335dd28
-# ╠═1217b527-3870-46c3-a602-3d48c1ee97ce
-# ╠═72dc4227-e7c0-48a0-808a-9cac1a79e227
+# ╟─069ad953-2166-4eaf-85b7-b5cdf30127b7
+# ╟─0e29d307-3bb2-45c8-8253-1ea66335dd28
+# ╟─1217b527-3870-46c3-a602-3d48c1ee97ce
+# ╟─72dc4227-e7c0-48a0-808a-9cac1a79e227
+# ╟─c511d09f-72a2-4d9c-bc41-782c1f1080d1
+# ╟─d121aa9c-a48a-420c-8bd5-82d63b01cf26
+# ╠═5d375598-7587-4765-b4f8-f9619824ef0e
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
