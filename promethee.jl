@@ -20,6 +20,15 @@ begin
 	import PlutoUI: combine
 end
 
+# ╔═╡ f5dae227-a340-4e52-b531-e01460fe6782
+md"
+# TODO:
+
+- [ ] Advertir si los pesos no suman a 1
+- [ ] Convertir `alternatives` y el resto en `Vector{Float64}`
+- [ ] Implementar los otros metodos y pedir el ingreso de P y Q (max/min)
+"
+
 # ╔═╡ 5a57206b-5362-4891-95f4-b7e17edc91b8
 function criteria_input(quantity)
 	return combine() do Child
@@ -30,6 +39,21 @@ function criteria_input(quantity)
 				Child(randstring(), Select(
 					["Criterion", "Lineal", "Level", "Only P", "Only Q"]
 				))
+			)"""
+
+			for order in string.(1:quantity)
+		]
+
+		md"""$(inputs)"""
+	end
+end
+
+# ╔═╡ e40f509b-68a3-4421-8b34-307d1f9388c1
+function names_input(quantity)
+	return combine() do Child
+		inputs = [
+			md""" Name of the alternative $order: $(
+				Child(randstring(), TextField())
 			)"""
 
 			for order in string.(1:quantity)
@@ -105,60 +129,98 @@ Quantity of alternatives:
 $(@bind alternatives_count confirm(NumberField(1:10)))
 "
 
+# ╔═╡ 0c04df4e-356a-4250-82ba-66625a3d2830
+@bind names_tuple confirm(names_input(alternatives_count))
+
+# ╔═╡ 328fc097-53d5-493e-ab46-8c47281dacfe
+names = collect(names_tuple)
+
 # ╔═╡ 069ad953-2166-4eaf-85b7-b5cdf30127b7
 @bind alternatives_tuple confirm(alternatives_input(alternatives_count))
 
 # ╔═╡ 0e29d307-3bb2-45c8-8253-1ea66335dd28
-begin	
-	tuple_data = Tuple(alternatives_tuple)
-	
-	elements_per_division = length(tuple_data) ÷ criteria_count
-		
-	alternatives = [tuple_data[i:i+elements_per_division-1] for i in 1:elements_per_division:length(tuple_data)]
-	
-	alternatives
-end
+alternatives = reshape(collect(alternatives_tuple)', (alternatives_count, criteria_count))'
 
 # ╔═╡ 1217b527-3870-46c3-a602-3d48c1ee97ce
 @bind weights_tuple confirm(weights_input(alternatives_count))
 
-# ╔═╡ 72dc4227-e7c0-48a0-808a-9cac1a79e227
-collect(weights_tuple)
+# ╔═╡ f2f27761-9ee1-43ec-a01a-00b81ac9e135
+weights = collect(weights_tuple)
 
-# ╔═╡ c511d09f-72a2-4d9c-bc41-782c1f1080d1
-@bind skidaddle Button("Skidaddle!")
+# ╔═╡ 9e71fa90-4bbf-46fa-9f41-28ec4f1d4231
+function normalize(values::Vector{Float64})::Matrix{Float64}
+	len = length(values)
+	normalison = zeros(Float64, len, len)
+	for i in 1:len
+		for j in 1:len
+			if values[i] > values[j]
+				normalison[i, j] = 1
+			end
+		end
+	end
 
-# ╔═╡ d121aa9c-a48a-420c-8bd5-82d63b01cf26
-md"
-``` python
-    for i in range(len(alternatives)):
-        normalized.append(normalize(alternatives[i], preferences[i], indifferences[i], functions[i]))
-    show(normalized[0])
-    print()
+	return normalison
+end
 
-    for i in range(len(normalized)):
-        ponderated.append(ponderate(normalized[i], weights[i]))
-    show(normalized[0])
-    print()
+# ╔═╡ 5953ccdf-980c-4936-a0ac-9fe43eb75093
+function ponderate(matrix, weight::Float64)::Matrix{Float64}
+    return [element * weight for element in matrix]
+end
 
-    combination = combine(ponderated)
-    show(combination)
-    print()
+# ╔═╡ efd04d51-fd38-4928-b69d-5d73663206d6
+function combinate(matrices::Vector{Matrix{Float64}})
+    rows = size(matrices[1], 1)
+    combination = zeros(Float64, rows, rows)
 
-    positive_flow, negative_flow = flows(combination)
-    print(positive_flow, negative_flow)
+    for matrix in matrices
+        combination .+= matrix
+    end
 
-    results = [p - n for p, n in zip(positive_flow, negative_flow)]
-    print(results)
-```
-"
+    return combination
+end
 
-# ╔═╡ 5d375598-7587-4765-b4f8-f9619824ef0e
+# ╔═╡ d8be6c44-2878-4229-9b18-ffa0b49a04a9
+function flows(matrix::Matrix{Float64})::Tuple{Vector{Float64}, Vector{Float64}}
+	rows, cols = size(matrix)
+
+    positive_flow = [sum(row) for row in eachrow(matrix)]
+    negative_flow = [sum(matrix[:, j]) for j in 1:cols]
+
+    return positive_flow, negative_flow
+end
+
+# ╔═╡ 331fdeb6-b1ae-4f12-92bf-662925593188
+@bind skidaddle Button("Magiclick")
+
+# ╔═╡ eec544e6-bb8c-4539-bea3-786affb1d0a1
 begin
 	skidaddle
+	
+	normalized::Vector{Matrix{Float64}} = []
+	ponderated::Vector{Matrix{Float64}} = []
 
-	for i in 1:alternatives_count
-		println(i)
+	for i in 1:size(alternatives, 1)
+		push!(normalized, normalize(alternatives[i, :]))
+	end
+	
+	for i in 1:length(normalized)
+		push!(ponderated, ponderate(normalized[i], weights[i]))
+	end
+
+	combination = combinate(ponderated)
+
+	positive_flow, negative_flow = flows(combination)
+
+	results = [p - n for (p, n) in zip(positive_flow, negative_flow)]
+
+	data = (results, names)
+
+	sorted_indices = sortperm(data[1], rev=true)
+
+	sorted_data = Tuple(data[i][sorted_indices] for i in 1:length(data))
+
+	for i in 1:length(results)
+	    println("Valor: ", round(sorted_data[1][i], digits=2), ", Alternativa: ", sorted_data[2][i])
 	end
 end
 
@@ -435,23 +497,30 @@ version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═2f883160-7934-11ee-0dd3-d983d541dae0
+# ╟─f5dae227-a340-4e52-b531-e01460fe6782
+# ╟─2f883160-7934-11ee-0dd3-d983d541dae0
 # ╟─5a57206b-5362-4891-95f4-b7e17edc91b8
+# ╟─e40f509b-68a3-4421-8b34-307d1f9388c1
 # ╟─a2c51850-fc8a-49b2-8907-0327759724ec
 # ╟─1fef8729-943f-4e62-9bf7-db327c438e39
 # ╟─d827f5b0-0f1b-4e70-a78d-a3c2f0dc6d78
 # ╟─6b7a4adb-9a23-46a9-b29f-b32afae0a047
 # ╟─dba59597-1d75-4ada-8fc3-774fc1de1303
-# ╠═f8e30065-cf82-402f-9d90-dd4e954312b2
+# ╟─f8e30065-cf82-402f-9d90-dd4e954312b2
 # ╟─a75c01e1-a4a1-4d58-a18f-0b8e24e9aa4e
 # ╟─155d39b1-51b1-40d7-bb4a-8145e64b57f8
 # ╟─aa77cde1-c70c-46bc-9db8-70ef1f9049f2
+# ╟─0c04df4e-356a-4250-82ba-66625a3d2830
+# ╟─328fc097-53d5-493e-ab46-8c47281dacfe
 # ╟─069ad953-2166-4eaf-85b7-b5cdf30127b7
 # ╟─0e29d307-3bb2-45c8-8253-1ea66335dd28
 # ╟─1217b527-3870-46c3-a602-3d48c1ee97ce
-# ╟─72dc4227-e7c0-48a0-808a-9cac1a79e227
-# ╟─c511d09f-72a2-4d9c-bc41-782c1f1080d1
-# ╟─d121aa9c-a48a-420c-8bd5-82d63b01cf26
-# ╠═5d375598-7587-4765-b4f8-f9619824ef0e
+# ╟─f2f27761-9ee1-43ec-a01a-00b81ac9e135
+# ╟─9e71fa90-4bbf-46fa-9f41-28ec4f1d4231
+# ╟─5953ccdf-980c-4936-a0ac-9fe43eb75093
+# ╟─efd04d51-fd38-4928-b69d-5d73663206d6
+# ╟─d8be6c44-2878-4229-9b18-ffa0b49a04a9
+# ╟─331fdeb6-b1ae-4f12-92bf-662925593188
+# ╟─eec544e6-bb8c-4539-bea3-786affb1d0a1
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
