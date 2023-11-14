@@ -29,6 +29,22 @@ md"
 - [ ] Implementar los otros metodos y pedir el ingreso de P y Q (max/min)
 "
 
+# ╔═╡ a58e16d7-b99d-40fa-ac39-7cc02e4231e6
+md"""
+!!! warning "ERROR"
+    usar para si los pesos no suman a 1 (note, warning)
+"""
+
+# ╔═╡ 541ac3d6-ef03-4a0c-a968-e4785ff58dee
+md"""
+| :exclamation:  This is very important   |
+|-----------------------------------------|
+
+
+| :zap:        Ignore at your own risk!   |
+|-----------------------------------------|
+"""
+
 # ╔═╡ 5a57206b-5362-4891-95f4-b7e17edc91b8
 function criteria_input(quantity)
 	return combine() do Child
@@ -498,6 +514,8 @@ version = "17.4.0+0"
 
 # ╔═╡ Cell order:
 # ╟─f5dae227-a340-4e52-b531-e01460fe6782
+# ╠═a58e16d7-b99d-40fa-ac39-7cc02e4231e6
+# ╠═541ac3d6-ef03-4a0c-a968-e4785ff58dee
 # ╟─2f883160-7934-11ee-0dd3-d983d541dae0
 # ╟─5a57206b-5362-4891-95f4-b7e17edc91b8
 # ╟─e40f509b-68a3-4421-8b34-307d1f9388c1
