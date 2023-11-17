@@ -24,11 +24,11 @@ end
 md"""
 # TODO:
 
-- Convertir `alternatives` y el resto en `Vector{Float64}`
-- Implementar los otros metodos y pedir el ingreso de P y Q (max/min)
-- Agregar promethee2, no 1
+- Implementar max/min y otros metodos
 - Agregar explicacion teorica
 - Auto-normalizacion de pesos
+- Limpiar codigo
+- Mejorar UI
 """
 
 # ╔═╡ 5a57206b-5362-4891-95f4-b7e17edc91b8
@@ -65,13 +65,9 @@ function names_input(quantity)
 	end
 end
 
-# ╔═╡ 26254e6e-94dc-42a8-bb44-8fef37addcb6
-function preferences_input()
-end
-
 # ╔═╡ d827f5b0-0f1b-4e70-a78d-a3c2f0dc6d78
 md"
-# Promethee
+# Promethee II
 "
 
 # ╔═╡ 6b7a4adb-9a23-46a9-b29f-b32afae0a047
@@ -105,24 +101,8 @@ begin
 	funcs = [criteria_tuple[symbol] for symbol in even_indices]
 end;
 
-# ╔═╡ a2c51850-fc8a-49b2-8907-0327759724ec
-function alternatives_input(quantity)
-	return combine() do Child
-		inputs = [
-			md""" $criterion $order: $(
-				Child(randstring(), NumberField(0.0:1000.0))
-			)"""
-
-			for criterion in criteria
-			for order in string.(1:quantity)
-		]
-
-		md"""$(inputs)"""
-	end
-end
-
 # ╔═╡ 1fef8729-943f-4e62-9bf7-db327c438e39
-function weights_input(quantity)
+function weights_input()
 	return combine() do Child
 		inputs = [
 			md""" $criterion weight: $(
@@ -130,6 +110,25 @@ function weights_input(quantity)
 			)"""
 
 			for criterion in criteria
+		]
+
+		md"""$(inputs)"""
+	end
+end
+
+# ╔═╡ 26254e6e-94dc-42a8-bb44-8fef37addcb6
+function preferences_input()
+	return combine() do Child
+		inputs = [
+			md""" #### $(criteria[i])
+			
+			P: $(
+				Child(randstring(), NumberField(0.0:1000.0))
+			) Q: $(
+				Child(randstring(), NumberField(0.0:1000.0))
+			)"""
+
+			for i in 1:length(criteria) if funcs[i] == "Lineal"
 		]
 
 		md"""$(inputs)"""
@@ -154,11 +153,27 @@ md"### Names"
 # ╔═╡ 328fc097-53d5-493e-ab46-8c47281dacfe
 names = collect(names_tuple);
 
+# ╔═╡ a2c51850-fc8a-49b2-8907-0327759724ec
+function alternatives_input()
+	return combine() do Child
+		inputs = [
+			md""" $criterion $name: $(
+				Child(randstring(), NumberField(0.0:1000.0))
+			)"""
+
+			for criterion in criteria
+			for name in names
+		]
+
+		md"""$(inputs)"""
+	end
+end
+
 # ╔═╡ 614dabc5-e1a7-4a55-9bc2-72cf65d26e4d
 md"### Values"
 
 # ╔═╡ 069ad953-2166-4eaf-85b7-b5cdf30127b7
-@bind alternatives_tuple confirm(alternatives_input(alternatives_count))
+@bind alternatives_tuple confirm(alternatives_input())
 
 # ╔═╡ 0e29d307-3bb2-45c8-8253-1ea66335dd28
 alternatives = reshape(collect(alternatives_tuple)', (alternatives_count, criteria_count))';
@@ -167,7 +182,7 @@ alternatives = reshape(collect(alternatives_tuple)', (alternatives_count, criter
 md"### Weights"
 
 # ╔═╡ 1217b527-3870-46c3-a602-3d48c1ee97ce
-@bind weights_tuple confirm(weights_input(alternatives_count))
+@bind weights_tuple confirm(weights_input())
 
 # ╔═╡ f2f27761-9ee1-43ec-a01a-00b81ac9e135
 begin
@@ -175,8 +190,6 @@ begin
 	
 	if sum(weights) != 1
 		md"""!!! warning "Weights not balanced" """
-	else
-		md"""!!! note "Weights are balanced" """
 	end
 end
 
@@ -187,20 +200,47 @@ md"### Preferences"
 @bind preferences_tuple confirm(preferences_input())
 
 # ╔═╡ fbbbe745-c55f-4ba4-8e5b-56f3ab0d08f5
-# preferences = collect(preferences_tuple);
-weights_tuple;
+begin
+	pref = collect(preferences_tuple)
+	preferences :: Vector{Float64} = []
+	
+	for f in funcs
+	    # Check if the function is "Criterion"
+	    if f == "Criterion"
+	        # If it is, add two zeros to preferences
+	        push!(preferences, 0.0, 0.0)
+	    else
+	        # If it's "Lineal", consume the two first elements of pref
+	        push!(preferences, pref[1], pref[2])
+	        # Remove the consumed elements from pref
+	        popfirst!(pref)
+	        popfirst!(pref)
+	    end
+	end
+end
 
 # ╔═╡ b1dd1ec3-861a-4e9b-bb91-7f719892edd7
 md"## Result"
 
 # ╔═╡ 9e71fa90-4bbf-46fa-9f41-28ec4f1d4231
-function normalize(values::Vector{Float64})::Matrix{Float64}
+function normalize(values::Vector{Float64}, func::String, p, q)::Matrix{Float64}
 	len = length(values)
 	normalison = zeros(Float64, len, len)
 	for i in 1:len
 		for j in 1:len
-			if values[i] > values[j]
-				normalison[i, j] = 1
+			if func == "Criterion"
+				if values[i] > values[j]
+					normalison[i, j] = 1
+				end
+			elseif func == "Lineal"
+				delta = values[i] - values[j]
+				if delta < q
+					normalison[j, i] = 0
+				elseif delta < p
+					normalison[j, i] = (values[i] - values[j] - q) / (p - q)
+				else
+					normalison[j, i] = 1
+				end
 			end
 		end
 	end
@@ -246,8 +286,12 @@ begin
 	ponderated::Vector{Matrix{Float64}} = []
 
 	for i in 1:size(alternatives, 1)
-		push!(normalized, normalize(alternatives[i, :]))
+		p = preferences[2i - 1]
+		q = preferences[2i]
+		push!(normalized, normalize(alternatives[i, :], funcs[i], p, q))
 	end
+
+	# println(normalized[1])
 	
 	for i in 1:length(normalized)
 		push!(ponderated, ponderate(normalized[i], weights[i]))
@@ -282,7 +326,7 @@ PlutoUI = "~0.7.52"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.3"
+julia_version = "1.9.4"
 manifest_format = "2.0"
 project_hash = "f1626228c716a5606285cdc0f023f79a5f3cff19"
 
@@ -424,12 +468,12 @@ version = "1.3.1"
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
 uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
-version = "0.6.3"
+version = "0.6.4"
 
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "7.84.0+0"
+version = "8.4.0+0"
 
 [[deps.LibGit2]]
 deps = ["Base64", "NetworkOptions", "Printf", "SHA"]
@@ -438,7 +482,7 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 [[deps.LibSSH2_jll]]
 deps = ["Artifacts", "Libdl", "MbedTLS_jll"]
 uuid = "29816b5a-b9ab-546f-933c-edad1886dfa8"
-version = "1.10.2+0"
+version = "1.11.0+1"
 
 [[deps.Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
@@ -647,7 +691,7 @@ version = "5.8.0+0"
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.48.0+0"
+version = "1.52.0+1"
 
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]
