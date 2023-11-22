@@ -26,10 +26,9 @@ md"""
 
 - Implementar max/min y otros metodos
 - Agregar explicacion teorica
-- Auto-normalizacion de pesos
 - Limpiar codigo
 - Mejorar UI
-"""
+""";
 
 # ╔═╡ 5a57206b-5362-4891-95f4-b7e17edc91b8
 function criteria_input(quantity)
@@ -39,7 +38,7 @@ function criteria_input(quantity)
 				Child(randstring(), TextField())
 			) $(
 				Child(randstring(), Select(
-					["Criterion", "Lineal", "Level", "Only P", "Only Q"]
+					["Criterion", "Lineal"]
 				))
 			)"""
 
@@ -48,7 +47,7 @@ function criteria_input(quantity)
 
 		md"""$(inputs)"""
 	end
-end
+end;
 
 # ╔═╡ e40f509b-68a3-4421-8b34-307d1f9388c1
 function names_input(quantity)
@@ -63,7 +62,7 @@ function names_input(quantity)
 
 		md"""$(inputs)"""
 	end
-end
+end;
 
 # ╔═╡ d827f5b0-0f1b-4e70-a78d-a3c2f0dc6d78
 md"
@@ -114,7 +113,7 @@ function weights_input()
 
 		md"""$(inputs)"""
 	end
-end
+end;
 
 # ╔═╡ 26254e6e-94dc-42a8-bb44-8fef37addcb6
 function preferences_input()
@@ -133,7 +132,7 @@ function preferences_input()
 
 		md"""$(inputs)"""
 	end
-end
+end;
 
 # ╔═╡ 155d39b1-51b1-40d7-bb4a-8145e64b57f8
 md"## Alternatives"
@@ -167,7 +166,7 @@ function alternatives_input()
 
 		md"""$(inputs)"""
 	end
-end
+end;
 
 # ╔═╡ 614dabc5-e1a7-4a55-9bc2-72cf65d26e4d
 md"### Values"
@@ -185,13 +184,22 @@ md"### Weights"
 @bind weights_tuple confirm(weights_input())
 
 # ╔═╡ f2f27761-9ee1-43ec-a01a-00b81ac9e135
-begin
-	weights = collect(weights_tuple);
-	
-	if sum(weights) != 1
-		md"""!!! warning "Weights not balanced" """
-	end
+if sum(weights_tuple) != 1
+	md"""!!! warning "Weights don't add up to 1" 
+	Balance? $(@bind balance CheckBox())
+	"""
+else
+	balance = false
+
+	md"""!!! note "Weights balanced" """
 end
+
+# ╔═╡ 641a7e03-3aec-46e9-83b3-39d9ac476ae2
+if balance
+	weights = collect(map((x) -> x / sum(weights_tuple), weights_tuple))
+else
+	weights = collect(weights_tuple)
+end;
 
 # ╔═╡ 6e5ac813-9db7-4935-8638-5c391a32c9d5
 md"### Preferences"
@@ -246,12 +254,12 @@ function normalize(values::Vector{Float64}, func::String, p, q)::Matrix{Float64}
 	end
 
 	return normalison
-end
+end;
 
 # ╔═╡ 5953ccdf-980c-4936-a0ac-9fe43eb75093
 function ponderate(matrix, weight::Float64)::Matrix{Float64}
     return [element * weight for element in matrix]
-end
+end;
 
 # ╔═╡ efd04d51-fd38-4928-b69d-5d73663206d6
 function combinate(matrices::Vector{Matrix{Float64}})
@@ -263,7 +271,7 @@ function combinate(matrices::Vector{Matrix{Float64}})
     end
 
     return combination
-end
+end;
 
 # ╔═╡ d8be6c44-2878-4229-9b18-ffa0b49a04a9
 function flows(matrix::Matrix{Float64})::Tuple{Vector{Float64}, Vector{Float64}}
@@ -273,15 +281,10 @@ function flows(matrix::Matrix{Float64})::Tuple{Vector{Float64}, Vector{Float64}}
     negative_flow = [sum(matrix[:, j]) for j in 1:cols]
 
     return positive_flow, negative_flow
-end
-
-# ╔═╡ 331fdeb6-b1ae-4f12-92bf-662925593188
-@bind skidaddle Button("Skeedaddle")
+end;
 
 # ╔═╡ eec544e6-bb8c-4539-bea3-786affb1d0a1
 begin
-	skidaddle
-	
 	normalized::Vector{Matrix{Float64}} = []
 	ponderated::Vector{Matrix{Float64}} = []
 
@@ -290,8 +293,6 @@ begin
 		q = preferences[2i]
 		push!(normalized, normalize(alternatives[i, :], funcs[i], p, q))
 	end
-
-	# println(normalized[1])
 	
 	for i in 1:length(normalized)
 		push!(ponderated, ponderate(normalized[i], weights[i]))
@@ -725,6 +726,7 @@ version = "17.4.0+0"
 # ╟─110ae537-5e73-4a03-b58d-f748dda91b32
 # ╟─1217b527-3870-46c3-a602-3d48c1ee97ce
 # ╟─f2f27761-9ee1-43ec-a01a-00b81ac9e135
+# ╟─641a7e03-3aec-46e9-83b3-39d9ac476ae2
 # ╟─6e5ac813-9db7-4935-8638-5c391a32c9d5
 # ╟─9887ee9c-28f4-4097-86a9-30f7fa2b5c1e
 # ╟─fbbbe745-c55f-4ba4-8e5b-56f3ab0d08f5
@@ -733,7 +735,6 @@ version = "17.4.0+0"
 # ╟─5953ccdf-980c-4936-a0ac-9fe43eb75093
 # ╟─efd04d51-fd38-4928-b69d-5d73663206d6
 # ╟─d8be6c44-2878-4229-9b18-ffa0b49a04a9
-# ╟─331fdeb6-b1ae-4f12-92bf-662925593188
 # ╟─eec544e6-bb8c-4539-bea3-786affb1d0a1
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
